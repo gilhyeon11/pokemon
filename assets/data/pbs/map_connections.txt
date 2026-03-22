@@ -1,0 +1,180 @@
+﻿# See the documentation on the wiki to learn how to edit this file.
+#-------------------------------
+# Lappet Town (2) - Route 1 (5)
+2,North,0,5,South,4
+# Lappet Town (2) - Safari Zone outside (66)
+2,West,0,66,East,0
+# Route 8 (69) - Lappet Town (2)
+69,North,12,2,South,0
+# Route 6 (44) - Route 1 (5)
+44,South,43,5,North,0
+# Safari Zone outside (66) - Route 1 (5)
+66,North,18,5,South,0
+# Cedolan City (7) - Route 1 (5)
+7,South,0,5,North,2
+# Cedolan City (7) - Route 6 (44)
+7,West,5,44,East,0
+# Cedolan City (7) - Lerucean Town (23)
+7,East,0,23,West,78
+# Route 7 (47) - Cedolan City (7)
+47,West,0,7,East,0
+# Route 2 (21) - Cedolan City (7)
+21,South,0,7,North,21
+# Route 2 (21) - Lerucean Town (23)
+21,East,0,23,West,1
+# Route 2 (21) - Route 7 (47)
+21,East,77,47,West,0
+# Route 3 (31) - Lerucean Town (23)
+31,South,32,23,North,0
+# Route 3 (31) - Ingido Plateau outside (35)
+31,West,0,35,East,10
+# Ingido Plateau outside (35) - Route 4 (39)
+35,West,11,39,East,0
+# Route 5 (41) - Route 4 Cycling Road (40)
+41,North,0,40,South,0
+# Route 5 (41) - Route 6 Cycling Road (45)
+41,South,6,45,North,0
+# Route 7 (47) - Battle Frontier (52)
+47,East,8,52,West,0
+# Route 8 (69) - Safari Zone outside (66)
+69,North,0,66,South,10
+# Route 2 entrance (96) - Route 2 cap (106)
+96,West,0,106,East,0
+# Route 2 south (97) - Route 2 cap (106)
+97,West,0,106,East,31
+# Route 2 south beach (102) - Route 2 cap (106)
+102,West,0,106,East,61
+# water cap (103) - Route 2 cap (106)
+103,West,0,106,East,81
+# route 1 Left (43) - Route 2 entrance (96)
+43,West,24,96,East,0
+# route 1 bottom left (94) - Route 2 entrance (96)
+94,West,0,96,East,9
+# Route 2 south (97) - Route 2 entrance (96)
+97,North,0,96,South,0
+# Orphanage Left (76) - Route 2 entrance (96)
+76,West,49,96,East,0
+# Test top La (82) - Route 2 entrance (96)
+82,West,64,96,East,0
+# The Orphanage (22) - route 1 Left (43)
+22,West,25,43,East,0
+# route 1 bottom left (94) - route 1 Left (43)
+94,North,0,43,South,0
+# route 1 (32) - route 1 Left (43)
+32,West,0,43,East,0
+# route 1 bottom (48) - route 1 Left (43)
+48,West,0,43,East,40
+# Route 2 south (97) - route 1 Left (43)
+97,East,0,43,West,55
+# Orphanage Left (76) - route 1 Left (43)
+76,South,0,43,North,0
+# Route 2 south beach (102) - route 1 Left (43)
+102,East,0,43,West,85
+# Orphange right (77) - route 1 Left (43)
+77,South,0,43,North,54
+# test top (81) - route 1 Left (43)
+81,West,40,43,East,0
+# water cap (103) - route 1 Left (43)
+103,East,0,43,West,105
+# route 1 bottom left (94) - The Orphanage (22)
+94,East,0,22,West,58
+# route 1 (32) - The Orphanage (22)
+32,North,0,22,South,0
+# Orphanage Left (76) - The Orphanage (22)
+76,East,0,22,West,0
+# Route 1 Ra (78) - The Orphanage (22)
+78,West,0,22,East,25
+# Orphange right (77) - The Orphanage (22)
+77,West,0,22,East,0
+# test top (81) - The Orphanage (22)
+81,South,0,22,North,0
+# test top Ra (80) - The Orphanage (22)
+80,West,15,22,East,0
+# Route 1 bottom Ra (79) - The Orphanage (22)
+79,West,0,22,East,65
+# Test top La (82) - The Orphanage (22)
+82,East,15,22,West,0
+# route 1 (32) - route 1 bottom left (94)
+32,West,33,94,East,0
+# route 1 bottom (48) - route 1 bottom left (94)
+48,West,0,94,East,7
+# Route 2 south (97) - route 1 bottom left (94)
+97,North,60,94,South,0
+# Route 2 south beach (102) - route 1 bottom left (94)
+102,East,0,94,West,52
+# test top (81) - route 1 bottom left (94)
+81,West,73,94,East,0
+# water cap (103) - route 1 bottom left (94)
+103,East,0,94,West,72
+# route 1 bottom (48) - route 1 (32)
+48,North,0,32,South,0
+# Orphanage Left (76) - route 1 (32)
+76,East,25,32,West,0
+# Route 1 Ra (78) - route 1 (32)
+78,West,0,32,East,0
+# Orphange right (77) - route 1 (32)
+77,West,25,32,East,0
+# test top Ra (80) - route 1 (32)
+80,West,40,32,East,0
+# Route 1 bottom Ra (79) - route 1 (32)
+79,West,0,32,East,40
+# Test top La (82) - route 1 (32)
+82,East,40,32,West,0
+# Route 2 south (97) - route 1 bottom (48)
+97,North,80,48,South,0
+# Orphanage Left (76) - route 1 bottom (48)
+76,East,65,48,West,0
+# Route 1 Ra (78) - route 1 bottom (48)
+78,West,40,48,East,0
+# Orphange right (77) - route 1 bottom (48)
+77,West,65,48,East,0
+# test top Ra (80) - route 1 bottom (48)
+80,West,80,48,East,0
+# Route 1 bottom Ra (79) - route 1 bottom (48)
+79,West,0,48,East,0
+# Test top La (82) - route 1 bottom (48)
+82,East,80,48,West,0
+# Orphanage Left (76) - Route 2 south (97)
+76,West,80,97,East,0
+# Route 2 south beach (102) - Route 2 south (97)
+102,North,0,97,South,0
+# Route 1 bottom Ra (79) - Route 2 south (97)
+79,South,0,97,North,114
+# Test top La (82) - Route 2 south (97)
+82,West,95,97,East,0
+# Route 2 south beach (102) - Orphanage Left (76)
+102,East,0,76,West,110
+# Route 1 Ra (78) - Orphanage Left (76)
+78,North,0,76,South,54
+# test top (81) - Orphanage Left (76)
+81,West,15,76,East,0
+# test top Ra (80) - Orphanage Left (76)
+80,South,0,76,North,54
+# Test top La (82) - Orphanage Left (76)
+82,South,0,76,North,0
+# water cap (103) - Orphanage Left (76)
+103,East,0,76,West,130
+# Test top La (82) - Route 2 south beach (102)
+82,West,125,102,East,0
+# water cap (103) - Route 2 south beach (102)
+103,North,0,102,South,0
+# Orphange right (77) - Route 1 Ra (78)
+77,South,0,78,North,0
+# test top (81) - Route 1 Ra (78)
+81,East,40,78,West,0
+# Route 1 bottom Ra (79) - Route 1 Ra (78)
+79,North,0,78,South,0
+# test top (81) - Orphange right (77)
+81,East,15,77,West,0
+# test top Ra (80) - Orphange right (77)
+80,South,0,77,North,0
+# Test top La (82) - Orphange right (77)
+82,South,54,77,North,0
+# test top Ra (80) - test top (81)
+80,West,0,81,East,0
+# Route 1 bottom Ra (79) - test top (81)
+79,West,0,81,East,80
+# Test top La (82) - test top (81)
+82,East,0,81,West,0
+# water cap (103) - Test top La (82)
+103,East,0,82,West,145
