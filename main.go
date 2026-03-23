@@ -29,11 +29,46 @@ var (
 	bgmPlayer        *audio.Player
 )
 
-const (
-	mapWidth  = 20
-	mapHeight = 15
-	tileSize  = 32
-)
+const tileSize = 32
+
+type Rect struct {
+	X, Y, W, H float64
+}
+
+type MapData struct {
+	Width, Height int
+	BaseTile      int
+	PathTile      int // 0 means no path line
+	Houses        []Rect
+	LeftMap       int
+	RightMap      int
+	UpMap         int
+	DownMap       int
+}
+
+var maps = []MapData{
+	{ // Map 0 (Start Town)
+		Width: 20, Height: 15,
+		BaseTile: 16, PathTile: 17,
+		Houses: []Rect{
+			{36, 30, 68, 50},
+			{400, 30, 68, 50},
+			{36, 350, 68, 50},
+			{400, 350, 68, 50},
+		},
+		LeftMap: -1, RightMap: 1, UpMap: -1, DownMap: -1,
+	},
+	{ // Map 1 (Route 1 / Second Town)
+		Width: 30, Height: 20,
+		BaseTile: 55, PathTile: 56, // Different aesthetic
+		Houses: []Rect{
+			{200, 100, 68, 50},
+			{600, 100, 68, 50},
+			{700, 400, 68, 50},
+		},
+		LeftMap: 0, RightMap: -1, UpMap: -1, DownMap: -1,
+	},
+}
 
 func init() {
 	var err error
@@ -64,23 +99,24 @@ func init() {
 	}
 }
 
-type Rect struct {
-	X, Y, W, H float64
-}
-
-var houses = []Rect{
-	{36, 30, 68, 50},
-	{400, 30, 68, 50},
-	{36, 350, 68, 50},
-	{400, 350, 68, 50},
-}
-
-func isColliding(x, y float64) bool {
+func isColliding(x, y float64, mapIdx int) bool {
 	pw, ph := 32.0, 32.0
-	if x < 0 || x+pw > mapWidth*tileSize || y < 0 || y+ph > mapHeight*tileSize {
+	m := &maps[mapIdx]
+
+	if x < 0 && m.LeftMap == -1 {
 		return true
 	}
-	for _, h := range houses {
+	if x+pw > float64(m.Width*tileSize) && m.RightMap == -1 {
+		return true
+	}
+	if y < 0 && m.UpMap == -1 {
+		return true
+	}
+	if y+ph > float64(m.Height*tileSize) && m.DownMap == -1 {
+		return true
+	}
+
+	for _, h := range m.Houses {
 		if x < h.X+h.W && x+pw > h.X && y < h.Y+h.H && y+ph > h.Y {
 			return true
 		}
@@ -89,13 +125,14 @@ func isColliding(x, y float64) bool {
 }
 
 type Game struct {
-	state      GameState
-	isGirl     bool
-	x, y       float64
-	dir        int
-	step       int
-	tick       int
-	camX, camY float64
+	state         GameState
+	isGirl        bool
+	currentMapIdx int
+	x, y          float64
+	dir           int
+	step          int
+	tick          int
+	camX, camY    float64
 }
 
 func (g *Game) Update() error {
@@ -145,10 +182,55 @@ func (g *Game) Update() error {
 		g.step = 0
 	}
 
-	if newX != g.x && !isColliding(newX, g.y) {
+	// Helper for checking transitions
+	m := &maps[g.currentMapIdx]
+	pw, ph := 32.0, 32.0
+
+	// Check map transition LEFT
+	if newX < 0 && m.LeftMap != -1 {
+		g.currentMapIdx = m.LeftMap
+		nextMap := &maps[g.currentMapIdx]
+		g.x = float64(nextMap.Width*tileSize) - pw - 2
+		if g.y > float64(nextMap.Height*tileSize)-ph {
+			g.y = float64(nextMap.Height*tileSize) - ph
+		}
+		return nil
+	}
+	// Check map transition RIGHT
+	if newX+pw > float64(m.Width*tileSize) && m.RightMap != -1 {
+		g.currentMapIdx = m.RightMap
+		nextMap := &maps[g.currentMapIdx]
+		g.x = 2
+		if g.y > float64(nextMap.Height*tileSize)-ph {
+			g.y = float64(nextMap.Height*tileSize) - ph
+		}
+		return nil
+	}
+	// Check map transition UP
+	if newY < 0 && m.UpMap != -1 {
+		g.currentMapIdx = m.UpMap
+		nextMap := &maps[g.currentMapIdx]
+		g.y = float64(nextMap.Height*tileSize) - ph - 2
+		if g.x > float64(nextMap.Width*tileSize)-pw {
+			g.x = float64(nextMap.Width*tileSize) - pw
+		}
+		return nil
+	}
+	// Check map transition DOWN
+	if newY+ph > float64(m.Height*tileSize) && m.DownMap != -1 {
+		g.currentMapIdx = m.DownMap
+		nextMap := &maps[g.currentMapIdx]
+		g.y = 2
+		if g.x > float64(nextMap.Width*tileSize)-pw {
+			g.x = float64(nextMap.Width*tileSize) - pw
+		}
+		return nil
+	}
+
+	if newX != g.x && !isColliding(newX, g.y, g.currentMapIdx) {
 		g.x = newX
 	}
-	if newY != g.y && !isColliding(g.x, newY) {
+	if newY != g.y && !isColliding(g.x, newY, g.currentMapIdx) {
 		g.y = newY
 	}
 
@@ -161,11 +243,20 @@ func (g *Game) Update() error {
 	if g.camY < 0 {
 		g.camY = 0
 	}
-	if g.camX > mapWidth*tileSize-320 {
-		g.camX = mapWidth*tileSize - 320
+	maxCamX := float64(m.Width*tileSize - 320)
+	if maxCamX < 0 {
+		maxCamX = 0
 	}
-	if g.camY > mapHeight*tileSize-240 {
-		g.camY = mapHeight*tileSize - 240
+	if g.camX > maxCamX {
+		g.camX = maxCamX
+	}
+	
+	maxCamY := float64(m.Height*tileSize - 240)
+	if maxCamY < 0 {
+		maxCamY = 0
+	}
+	if g.camY > maxCamY {
+		g.camY = maxCamY
 	}
 
 	return nil
@@ -197,13 +288,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		return
 	}
 
+	m := &maps[g.currentMapIdx]
 	op := &ebiten.DrawImageOptions{}
+
 	if tilesetImage != nil {
-		for y := 0; y < mapHeight; y++ {
-			for x := 0; x < mapWidth; x++ {
-				tileID := 16
-				if y == 7 || x == 10 {
-					tileID = 17
+		for y := 0; y < m.Height; y++ {
+			for x := 0; x < m.Width; x++ {
+				tileID := m.BaseTile
+				if y == m.Height/2 || x == m.Width/2 {
+					tileID = m.PathTile
 				}
 				vx := float64(x*tileSize) - g.camX
 				vy := float64(y*tileSize) - g.camY
@@ -246,10 +339,11 @@ func (g *Game) Layout(w, h int) (int, int) {
 
 func main() {
 	game := &Game{
-		state: StateMenu,
-		x:     144,
-		y:     104,
-		dir:   0,
+		state:         StateMenu,
+		currentMapIdx: 0,
+		x:             144,
+		y:             104,
+		dir:           0,
 	}
 	ebiten.SetWindowSize(640, 480)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
