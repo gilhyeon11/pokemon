@@ -17,17 +17,28 @@ import (
 type GameState int
 
 const (
-	StateMenu GameState = iota
+	StateTitle GameState = iota
+	StateMenu
 	StatePlaying
 )
 
 var (
 	playerSpriteBoy  *ebiten.Image
 	playerSpriteGirl *ebiten.Image
+	pikachuSprite    *ebiten.Image
 	tilesetImage     *ebiten.Image
 	audioContext     *audio.Context
 	bgmPlayer        *audio.Player
 )
+
+type NPC struct {
+	X, Y   float64
+	MapIdx int
+	Dir    int
+	Step   int
+}
+
+var npcs []NPC
 
 const tileSize = 32
 
@@ -80,6 +91,21 @@ func init() {
 	playerSpriteGirl, _, err = ebitenutil.NewImageFromFile("assets/graphics/characters/girl_run.png")
 	if err != nil {
 		log.Printf("Failed to load girl sprite: %v", err)
+	}
+
+	// Load Pikachu sprite from the extracted folder
+	pikachuSprite, _, err = ebitenutil.NewImageFromFile("extracted_orphan/Pokemon Orphan main/Graphics/Characters/Followers/PIKACHU.png")
+	if err != nil {
+		log.Printf("Failed to load pikachu sprite: %v", err)
+	} else {
+		// Spawn Pikachu on Map 0
+		npcs = append(npcs, NPC{
+			X:      200,
+			Y:      150,
+			MapIdx: 0,
+			Dir:    0,
+			Step:   0,
+		})
 	}
 
 	tilesetImage, _, err = ebitenutil.NewImageFromFile("assets/graphics/tilesets/Outside.png")
@@ -138,6 +164,15 @@ type Game struct {
 func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 		ebiten.SetFullscreen(!ebiten.IsFullscreen())
+	}
+
+	if g.state == StateTitle {
+		g.tick++
+		if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+			g.state = StateMenu
+			g.tick = 0
+		}
+		return nil
 	}
 
 	if g.state == StateMenu {
@@ -263,6 +298,19 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	if g.state == StateTitle {
+		screen.Fill(color.NRGBA{70, 130, 180, 255}) // SteelBlue
+		ebitenutil.DebugPrintAt(screen, "==========================", 80, 80)
+		ebitenutil.DebugPrintAt(screen, "   POKEMON MASTER: GO    ", 80, 100)
+		ebitenutil.DebugPrintAt(screen, "==========================", 80, 120)
+
+		// Blinking "Press ENTER" text
+		if (g.tick/30)%2 == 0 {
+			ebitenutil.DebugPrintAt(screen, "> Press ENTER to Start <", 90, 160)
+		}
+		return
+	}
+
 	if g.state == StateMenu {
 		screen.Fill(color.NRGBA{30, 40, 60, 255})
 		var msg string
@@ -315,6 +363,27 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		screen.Fill(color.NRGBA{60, 179, 113, 255})
 	}
 
+	// Draw NPCs on the current map
+	for _, npc := range npcs {
+		if npc.MapIdx == g.currentMapIdx && pikachuSprite != nil {
+			opNpc := &ebiten.DrawImageOptions{}
+			npcScreenX := npc.X - g.camX
+			npcScreenY := npc.Y - g.camY - 16
+			opNpc.GeoM.Translate(npcScreenX, npcScreenY)
+			
+			// Assume standard 128x192 layout (32x48 per frame)
+			nsx := npc.Step * 32
+			nsy := npc.Dir * 48
+			
+			// In case the follower sprite has a different dimension, clip it safely
+			rect := image.Rect(nsx, nsy, nsx+32, nsy+48)
+			if rect.Max.X <= pikachuSprite.Bounds().Max.X && rect.Max.Y <= pikachuSprite.Bounds().Max.Y {
+				nSub := pikachuSprite.SubImage(rect).(*ebiten.Image)
+				screen.DrawImage(nSub, opNpc)
+			}
+		}
+	}
+
 	op.GeoM.Reset()
 	screenX := g.x - g.camX
 	screenY := g.y - g.camY - 16
@@ -339,7 +408,7 @@ func (g *Game) Layout(w, h int) (int, int) {
 
 func main() {
 	game := &Game{
-		state:         StateMenu,
+		state:         StateTitle,
 		currentMapIdx: 0,
 		x:             144,
 		y:             104,
