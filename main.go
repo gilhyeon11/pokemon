@@ -113,7 +113,7 @@ func loadPokedexNames() []string {
 		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
 			name := line[1 : len(line)-1]
 			names = append(names, name)
-			if len(names) == 151 {
+			if len(names) == 251 {
 				break
 			}
 		}
@@ -213,6 +213,10 @@ type Game struct {
 	pokedexIdx    int
 	pokedexImages map[string]*ebiten.Image
 	enemyName     string
+	enemyHP       int
+	enemyMaxHP    int
+	playerHP      int
+	playerMaxHP   int
 }
 
 func (g *Game) getPokedexImage(name string) *ebiten.Image {
@@ -222,7 +226,7 @@ func (g *Game) getPokedexImage(name string) *ebiten.Image {
 	if img, ok := g.pokedexImages[name]; ok {
 		return img
 	}
-	path := "assets/gen1_pokemon/front/" + name + ".png"
+	path := "assets/pokemon/front/" + name + ".png"
 	img, _, err := ebitenutil.NewImageFromFile(path)
 	if err != nil {
 		img = ebiten.NewImage(1, 1)
@@ -276,6 +280,21 @@ func (g *Game) Update() error {
 		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyX) {
 			g.state = StatePlaying
 		}
+		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+			damage := rand.Intn(10) + 5
+			g.enemyHP -= damage
+			if g.enemyHP <= 0 {
+				g.enemyHP = 0
+				g.state = StatePlaying // Win battle
+			} else {
+				// Enemy retaliates
+				eDamage := rand.Intn(8) + 3
+				g.playerHP -= eDamage
+				if g.playerHP < 0 {
+					g.playerHP = 0
+				}
+			}
+		}
 		return nil
 	}
 
@@ -317,6 +336,12 @@ func (g *Game) Update() error {
 				if rand.Float64() < 0.15 && len(pokedex) > 0 {
 					g.state = StateBattle
 					g.enemyName = pokedex[rand.Intn(len(pokedex))]
+					g.enemyMaxHP = rand.Intn(30) + 20
+					g.enemyHP = g.enemyMaxHP
+					if g.playerMaxHP == 0 {
+						g.playerMaxHP = 50
+						g.playerHP = 50
+					}
 					return nil
 				}
 			}
@@ -441,17 +466,40 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	if g.state == StateBattle {
 		screen.Fill(color.NRGBA{240, 248, 255, 255}) // AliceBlue
-		
-		ebitenutil.DebugPrintAt(screen, "--- WILD ENCOUNTER ---", 20, 20)
-		ebitenutil.DebugPrintAt(screen, "Wild " + g.enemyName + " appeared!", 20, 50)
-		ebitenutil.DebugPrintAt(screen, "Press X or ESC to run away...", 20, 70)
+
+		// Draw Enemy UI
+		ebitenutil.DebugPrintAt(screen, "LV 5  " + g.enemyName, 20, 20)
+		ebitenutil.DrawRect(screen, 20, 36, 120, 12, color.NRGBA{100, 100, 100, 255})
+		hpRatioEnemy := float64(g.enemyHP) / float64(g.enemyMaxHP)
+		hpColorE := color.NRGBA{0, 200, 0, 255}
+		if hpRatioEnemy < 0.2 {
+			hpColorE = color.NRGBA{200, 0, 0, 255}
+		} else if hpRatioEnemy < 0.5 {
+			hpColorE = color.NRGBA{200, 200, 0, 255}
+		}
+		ebitenutil.DrawRect(screen, 20, 36, 120*hpRatioEnemy, 12, hpColorE)
+		ebitenutil.DebugPrintAt(screen, "Press SPACE to attack, X to run", 20, 200)
 
 		// Draw enemy sprite
 		img := g.getPokedexImage(g.enemyName)
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(180, 50) 
+		// Move enemy near top right
+		op.GeoM.Translate(180, 20)
 		screen.DrawImage(img, op)
-		
+
+		// Draw Player UI
+		ebitenutil.DebugPrintAt(screen, "LV 5  PIKACHU", 160, 130)
+		ebitenutil.DrawRect(screen, 160, 146, 140, 12, color.NRGBA{100, 100, 100, 255})
+		hpRatioPlayer := float64(g.playerHP) / float64(g.playerMaxHP)
+		hpColorP := color.NRGBA{0, 200, 0, 255}
+		if hpRatioPlayer < 0.2 {
+			hpColorP = color.NRGBA{200, 0, 0, 255}
+		} else if hpRatioPlayer < 0.5 {
+			hpColorP = color.NRGBA{200, 200, 0, 255}
+		}
+		ebitenutil.DrawRect(screen, 160, 146, 140*hpRatioPlayer, 12, hpColorP)
+		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("%d/%d", g.playerHP, g.playerMaxHP), 240, 162)
+
 		// Draw player's back sprite at bottom left
 		opP := &ebiten.DrawImageOptions{}
 		opP.GeoM.Translate(40, 120)
