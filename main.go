@@ -33,7 +33,8 @@ var (
 	playerSpriteBoy  *ebiten.Image
 	playerSpriteGirl *ebiten.Image
 	pikachuSprite    *ebiten.Image
-	tilesetImage     *ebiten.Image
+	tilesetImages    map[string]*ebiten.Image
+	houseImage       *ebiten.Image
 	audioContext     *audio.Context
 	bgmPlayer        *audio.Player
 	pokedex          []string
@@ -45,13 +46,22 @@ type Rect struct {
 	X, Y, W, H float64
 }
 
+type Portal struct {
+	Rect      Rect
+	TargetMap int
+	TargetX   float64
+	TargetY   float64
+}
+
 type MapData struct {
 	Width, Height int
+	Tileset       string
 	BaseTile      int
 	PathTile      int
 	TallGrassTile int
 	Houses        []Rect
 	GrassRects    []Rect
+	Portals       []Portal
 	LeftMap       int
 	RightMap      int
 	UpMap         int
@@ -61,6 +71,7 @@ type MapData struct {
 var maps = []MapData{
 	{ // Map 0 (Start Town)
 		Width: 20, Height: 15,
+		Tileset: "Outside",
 		BaseTile: 16, PathTile: 17, TallGrassTile: 24,
 		Houses: []Rect{
 			{36, 30, 68, 50},
@@ -69,12 +80,16 @@ var maps = []MapData{
 			{400, 350, 68, 50},
 		},
 		GrassRects: []Rect{
-			{100, 100, 160, 128}, // Patch of tall grass below the top left house
+			{100, 100, 160, 128},
+		},
+		Portals: []Portal{
+			{Rect: Rect{36+10, 80, 48, 10}, TargetMap: 2, TargetX: 144, TargetY: 270}, // Enter first house
 		},
 		LeftMap: -1, RightMap: 1, UpMap: -1, DownMap: -1,
 	},
 	{ // Map 1 (Route 1 / Second Town)
 		Width: 30, Height: 20,
+		Tileset: "Outside",
 		BaseTile: 55, PathTile: 56, TallGrassTile: 63,
 		Houses: []Rect{
 			{200, 100, 68, 50},
@@ -86,6 +101,17 @@ var maps = []MapData{
 			{100, 400, 128, 192},
 		},
 		LeftMap: 0, RightMap: -1, UpMap: -1, DownMap: -1,
+	},
+	{ // Map 2 (Inside First House)
+		Width: 10, Height: 10,
+		Tileset: "Interior_general",
+		BaseTile: 14, PathTile: 14, TallGrassTile: 14,
+		Houses: nil,
+		GrassRects: nil,
+		Portals: []Portal{
+			{Rect: Rect{120, 310, 80, 10}, TargetMap: 0, TargetX: 56, TargetY: 90}, // Exit house
+		},
+		LeftMap: -1, RightMap: -1, UpMap: -1, DownMap: -1,
 	},
 }
 
@@ -99,8 +125,7 @@ type NPC struct {
 var npcs []NPC
 
 func loadPokedexNames() []string {
-	pbsPath := "extracted_orphan/Pokemon Orphan main/PBS/pokemon.txt"
-	f, err := os.Open(pbsPath)
+	f, err := os.Open("assets/national_dex.txt")
 	if err != nil {
 		return nil
 	}
@@ -110,12 +135,9 @@ func loadPokedexNames() []string {
 	var names []string
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
-			name := line[1 : len(line)-1]
-			names = append(names, name)
-			if len(names) == 905 {
-				break
-			}
+		if line != "" {
+			// E.g., "bulbasaur"
+			names = append(names, strings.ToUpper(line))
 		}
 	}
 	return names
@@ -150,9 +172,19 @@ func init() {
 		})
 	}
 
-	tilesetImage, _, err = ebitenutil.NewImageFromFile("assets/graphics/tilesets/Outside.png")
+	houseImage, _, err = ebitenutil.NewImageFromFile("assets/graphics/buildings/house.png")
 	if err != nil {
-		log.Printf("Failed to load tileset: %v", err)
+		log.Printf("Failed to load house image: %v", err)
+	}
+
+	tilesetImages = make(map[string]*ebiten.Image)
+	tImg, _, err := ebitenutil.NewImageFromFile("assets/graphics/tilesets/Outside.png")
+	if err == nil {
+		tilesetImages["Outside"] = tImg
+	}
+	tImgIn, _, err := ebitenutil.NewImageFromFile("assets/Interior_general.png")
+	if err == nil {
+		tilesetImages["Interior_general"] = tImgIn
 	}
 
 	audioContext = audio.NewContext(44100)
@@ -226,7 +258,7 @@ func (g *Game) getPokedexImage(name string) *ebiten.Image {
 	if img, ok := g.pokedexImages[name]; ok {
 		return img
 	}
-	path := "assets/pokemon/front/" + name + ".png"
+	path := "assets/pokemon/front/" + strings.ToLower(name) + ".png"
 	img, _, err := ebitenutil.NewImageFromFile(path)
 	if err != nil {
 		img = ebiten.NewImage(1, 1)
@@ -264,10 +296,14 @@ func (g *Game) Update() error {
 		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyP) {
 			g.state = StatePlaying
 		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+		
+		downDur := inpututil.KeyPressDuration(ebiten.KeyDown)
+		if downDur == 1 || (downDur > 15 && downDur%4 == 0) {
 			g.pokedexIdx = (g.pokedexIdx + 1) % len(pokedex)
 		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+		
+		upDur := inpututil.KeyPressDuration(ebiten.KeyUp)
+		if upDur == 1 || (upDur > 15 && upDur%4 == 0) {
 			g.pokedexIdx--
 			if g.pokedexIdx < 0 {
 				g.pokedexIdx = len(pokedex) - 1
@@ -352,6 +388,17 @@ func (g *Game) Update() error {
 
 	m := &maps[g.currentMapIdx]
 	pw, ph := 32.0, 32.0
+
+	// Portal transitions
+	for _, p := range m.Portals {
+		if newX+pw/2 >= p.Rect.X && newX+pw/2 <= p.Rect.X+p.Rect.W && newY+ph >= p.Rect.Y && newY+ph <= p.Rect.Y+p.Rect.H {
+			g.currentMapIdx = p.TargetMap
+			g.x = p.TargetX
+			g.y = p.TargetY
+			// Adjust camera bounds immediately on teleport
+			return nil
+		}
+	}
 
 	// Map transitions
 	if newX < 0 && m.LeftMap != -1 {
@@ -548,17 +595,20 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	m := &maps[g.currentMapIdx]
 	op := &ebiten.DrawImageOptions{}
 
-	if tilesetImage != nil {
+	activeTileset := tilesetImages[m.Tileset]
+	if activeTileset != nil {
 		for y := 0; y < m.Height; y++ {
 			for x := 0; x < m.Width; x++ {
 				tileID := m.BaseTile
-				if y == m.Height/2 || x == m.Width/2 {
-					tileID = m.PathTile
-				} else {
-					tileX := float64(x * tileSize) + 16
-					tileY := float64(y * tileSize) + 16
-					if inGrass(tileX, tileY, m) {
-						tileID = m.TallGrassTile
+				if m.Tileset == "Outside" {
+					if y == m.Height/2 || x == m.Width/2 {
+						tileID = m.PathTile
+					} else {
+						tileX := float64(x*tileSize) + 16
+						tileY := float64(y*tileSize) + 16
+						if inGrass(tileX, tileY, m) {
+							tileID = m.TallGrassTile
+						}
 					}
 				}
 
@@ -571,12 +621,23 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				sy := (tileID / 8) * tileSize
 				op.GeoM.Reset()
 				op.GeoM.Translate(vx, vy)
-				sub := tilesetImage.SubImage(image.Rect(sx, sy, sx+tileSize, sy+tileSize)).(*ebiten.Image)
+				sub := activeTileset.SubImage(image.Rect(sx, sy, sx+tileSize, sy+tileSize)).(*ebiten.Image)
 				screen.DrawImage(sub, op)
 			}
 		}
 	} else {
 		screen.Fill(color.NRGBA{60, 179, 113, 255})
+	}
+
+	if houseImage != nil {
+		opHouse := &ebiten.DrawImageOptions{}
+		for _, h := range m.Houses {
+			vx := h.X - g.camX
+			vy := h.Y - g.camY
+			opHouse.GeoM.Reset()
+			opHouse.GeoM.Translate(vx-30, vy-78)
+			screen.DrawImage(houseImage, opHouse)
+		}
 	}
 
 	for _, npc := range npcs {

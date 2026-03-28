@@ -12,6 +12,7 @@ require (
 	github.com/jezek/xgb v1.1.1 // indirect
 	github.com/jfreymuth/oggvorbis v1.0.5 // indirect
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
+	golang.org/x/image v0.38.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect
 )
