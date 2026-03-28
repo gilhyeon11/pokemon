@@ -113,7 +113,7 @@ func loadPokedexNames() []string {
 		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
 			name := line[1 : len(line)-1]
 			names = append(names, name)
-			if len(names) == 386 {
+			if len(names) == 649 {
 				break
 			}
 		}
